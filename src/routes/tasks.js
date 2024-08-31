@@ -2,11 +2,27 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
 const auth = require('../middleware/auth');
-const Project = require('../models/Project');
+const Joi = require('joi');
+
+const taskSchema = Joi.object({
+  title: Joi.string().required(),
+  description: Joi.string(),
+  status: Joi.string().valid('To Do', 'In Progress', 'Done'),
+  priority: Joi.string().valid('Low', 'Medium', 'High'),
+  dueDate: Joi.date(),
+  project: Joi.string().required(),
+  subtasks: Joi.array().items(Joi.object({
+    title: Joi.string().required(),
+    completed: Joi.boolean()
+  }))
+});
 
 // Create a new task
 router.post('/', auth, async (req, res) => {
   try {
+    const { error } = taskSchema.validate(req.body);
+    if (error) return res.status(400).json({ message: error.details[0].message });
+
     const { title, description, status, priority, dueDate, project, subtasks } = req.body;
     const newTask = new Task({
       title,
