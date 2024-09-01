@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const Project = require('../models/Project');
+const Task = require('../models/Task');
 
 router.get('/', auth, async (req, res) => {
   try {
@@ -49,7 +50,8 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     // Delete all tasks associated with this project
-    await Task.deleteMany({ project: req.params.id });
+    const deletedTasks = await Task.deleteMany({ project: req.params.id });
+    console.log(`Deleted ${deletedTasks.deletedCount} tasks associated with the project`);
 
     // Delete the project
     await Project.findByIdAndDelete(req.params.id);
