@@ -29,6 +29,10 @@ router.post('/', auth, async (req, res) => {
 });
 
 router.delete('/:id', auth, async (req, res) => {
+  console.log('Received delete request for project ID:', req.params.id);
+  if (!req.params.id) {
+    return res.status(400).json({ msg: 'Project ID is required' });
+  }
   try {
     const project = await Project.findById(req.params.id);
     if (!project) {
@@ -44,12 +48,12 @@ router.delete('/:id', auth, async (req, res) => {
     await Task.deleteMany({ project: req.params.id });
 
     // Delete the project
-    await project.remove();
+    await Project.findByIdAndDelete(req.params.id);
 
     res.json({ msg: 'Project and associated tasks deleted' });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error('Error deleting project:', err);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });
 
