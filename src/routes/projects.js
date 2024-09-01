@@ -23,7 +23,7 @@ router.post('/', auth, async (req, res) => {
 
     const project = await newProject.save();
     res.json({
-      _id: project._id,
+      id: project.id,
       name: project.name,
       user: project.user
     });
