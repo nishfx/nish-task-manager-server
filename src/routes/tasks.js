@@ -19,25 +19,19 @@ const taskSchema = Joi.object({
 // Create a new task
 router.post('/', auth, async (req, res) => {
   try {
-    const { error } = taskSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({ message: error.details[0].message });
-    }
-
-    const { title, description, status, priority, project, subtasks } = req.body;
+    const { title, description, status, priority, project } = req.body;
     const newTask = new Task({
       title,
       description,
       status,
       priority,
       project,
-      user: req.user.id,
-      subtasks: subtasks || []
+      user: req.user.id
     });
-    const savedTask = await newTask.save();
-    res.json({ ...savedTask.toObject(), id: savedTask._id });  // Ensure ID is always sent
+    const task = await newTask.save();
+    res.json(task);
   } catch (err) {
-    console.error('Server error:', err.message);
+    console.error(err.message);
     res.status(500).send('Server Error');
   }
 });
