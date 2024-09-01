@@ -6,14 +6,13 @@ const Joi = require('joi');
 
 const taskSchema = Joi.object({
   title: Joi.string().required(),
-  description: Joi.string(),
-  status: Joi.string().valid('To Do', 'In Progress', 'Done'),
-  priority: Joi.string().valid('Low', 'Medium', 'High'),
-  dueDate: Joi.date(),
+  description: Joi.string().allow(''),
+  status: Joi.string().valid('To Do', 'In Progress', 'Done').required(),
+  priority: Joi.string().valid('Low', 'Medium', 'High').required(),
   project: Joi.string().required(),
   subtasks: Joi.array().items(Joi.object({
     title: Joi.string().required(),
-    completed: Joi.boolean()
+    completed: Joi.boolean().default(false)
   }))
 });
 
@@ -23,16 +22,15 @@ router.post('/', auth, async (req, res) => {
     const { error } = taskSchema.validate(req.body);
     if (error) return res.status(400).json({ message: error.details[0].message });
 
-    const { title, description, status, priority, dueDate, project, subtasks } = req.body;
+    const { title, description, status, priority, project, subtasks } = req.body;
     const newTask = new Task({
       title,
       description,
       status,
       priority,
-      dueDate,
       project,
       user: req.user.id,
-      subtasks
+      subtasks: subtasks || []
     });
     const task = await newTask.save();
     res.json(task);
