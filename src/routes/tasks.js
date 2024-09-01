@@ -18,9 +18,13 @@ const taskSchema = Joi.object({
 
 // Create a new task
 router.post('/', auth, async (req, res) => {
+  console.log('Received task creation request:', req.body);
   try {
     const { error } = taskSchema.validate(req.body);
-    if (error) return res.status(400).json({ message: error.details[0].message });
+    if (error) {
+      console.error('Validation error:', error.details[0].message);
+      return res.status(400).json({ message: error.details[0].message });
+    }
 
     const { title, description, status, priority, project, subtasks } = req.body;
     const newTask = new Task({
@@ -32,10 +36,12 @@ router.post('/', auth, async (req, res) => {
       user: req.user.id,
       subtasks: subtasks || []
     });
+    console.log('New task object:', newTask);
     const task = await newTask.save();
+    console.log('Saved task:', task);
     res.json(task);
   } catch (err) {
-    console.error(err.message);
+    console.error('Server error:', err.message);
     res.status(500).send('Server Error');
   }
 });
