@@ -76,28 +76,22 @@ router.get('/:id', auth, async (req, res) => {
 // Update a task
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { title, description, status, priority, dueDate, subtasks } = req.body;
+    const { title, description, status, priority, dueDate } = req.body;
     let task = await Task.findById(req.params.id);
-    if (!task) {
-      return res.status(404).json({ msg: 'Task not found' });
-    }
-    if (task.user.toString() !== req.user.id) {
-      return res.status(401).json({ msg: 'User not authorized' });
-    }
-    task.title = title;
-    task.description = description;
-    task.status = status;
-    task.priority = priority;
-    task.dueDate = dueDate;
-    task.subtasks = subtasks;
+    if (!task) return res.status(404).json({ msg: 'Task not found' });
+    if (task.user.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
+    
+    task.title = title || task.title;
+    task.description = description || task.description;
+    task.status = status || task.status;
+    task.priority = priority || task.priority;
+    task.dueDate = dueDate || task.dueDate;
     task.updatedAt = Date.now();
+
     await task.save();
     res.json(task);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ msg: 'Task not found' });
-    }
     res.status(500).send('Server Error');
   }
 });
