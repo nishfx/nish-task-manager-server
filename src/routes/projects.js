@@ -21,7 +21,11 @@ router.post('/', auth, async (req, res) => {
     });
 
     const project = await newProject.save();
-    res.json(project);
+    res.json({
+      _id: project._id,
+      name: project.name,
+      user: project.user
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
