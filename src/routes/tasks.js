@@ -84,12 +84,6 @@ router.put('/reorder/:projectId', auth, async (req, res) => {
       return res.status(400).json({ message: 'Invalid taskIds provided' });
     }
 
-    // Fetch all tasks for the project
-    const tasks = await Task.find({ project: projectId, user: req.user.id });
-
-    // Create a map of task IDs to their current order
-    const taskOrderMap = new Map(tasks.map(task => [task._id.toString(), task.order]));
-
     // Update task orders
     const bulkOps = taskIds.map((id, index) => ({
       updateOne: {
