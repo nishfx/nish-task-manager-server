@@ -28,10 +28,11 @@ router.post('/', auth, async (req, res) => {
       project,
       user: req.user.id
     });
-    const task = await newTask.save();
-    res.json(task);
+    const savedTask = await newTask.save();
+    console.log('Created task in database:', savedTask);
+    res.json(savedTask);
   } catch (err) {
-    console.error(err.message);
+    console.error('Error creating task:', err);
     res.status(500).send('Server Error');
   }
 });
