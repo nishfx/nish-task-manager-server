@@ -110,9 +110,15 @@ router.put('/:id/move', auth, async (req, res) => {
     const { newProjectId } = req.body;
     const taskId = req.params.id;
 
+    console.log('Received request to move task:', taskId, 'to project:', newProjectId); // Add this line
+
     // Validate input
     if (!newProjectId) {
       return res.status(400).json({ message: 'New project ID is required' });
+    }
+
+    if (!taskId || taskId === 'undefined') {
+      return res.status(400).json({ message: 'Invalid task ID' });
     }
 
     // Check if the task exists and belongs to the user
