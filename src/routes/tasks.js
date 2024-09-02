@@ -47,26 +47,6 @@ router.get('/project/:projectId', auth, async (req, res) => {
   }
 });
 
-// Get a specific task
-router.get('/:id', auth, async (req, res) => {
-  try {
-    const task = await Task.findById(req.params.id);
-    if (!task) {
-      return res.status(404).json({ msg: 'Task not found' });
-    }
-    if (task.user.toString() !== req.user.id) {
-      return res.status(401).json({ msg: 'User not authorized' });
-    }
-    res.json(task);
-  } catch (err) {
-    console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ msg: 'Task not found' });
-    }
-    res.status(500).send('Server Error');
-  }
-});
-
 // Update a task
 router.put('/:id', auth, async (req, res) => {
   try {
@@ -97,7 +77,7 @@ router.put('/:id', auth, async (req, res) => {
 router.put('/reorder/:projectId', auth, async (req, res) => {
   try {
     const { taskIds } = req.body;
-    const tasks = await Task.find({ _id: { $in: taskIds }, project: req.params.projectId });
+    const tasks = await Task.find({ _id: { $in: taskIds }, project: req.params.projectId, user: req.user.id });
     
     const bulkOps = taskIds.map((id, index) => ({
       updateOne: {
@@ -108,7 +88,8 @@ router.put('/reorder/:projectId', auth, async (req, res) => {
 
     await Task.bulkWrite(bulkOps);
 
-    res.json({ message: 'Tasks reordered successfully' });
+    const updatedTasks = await Task.find({ _id: { $in: taskIds } }).sort('order');
+    res.json(updatedTasks);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -126,7 +107,7 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(401).json({ msg: 'User not authorized' });
     }
     await task.remove();
-    res.json({ msg: 'Task removed' });
+    res.json({ msg: 'Task removed', id: req.params.id });
   } catch (err) {
     console.error(err.message);
     if (err.kind === 'ObjectId') {
