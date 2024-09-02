@@ -1,3 +1,5 @@
+// src/models/Task.js (server side)
+
 const mongoose = require('mongoose');
 
 const TaskSchema = new mongoose.Schema({
@@ -10,18 +12,10 @@ const TaskSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  status: {
-    type: String,
-    enum: ['To Do', 'In Progress', 'Done'],
-    default: 'To Do'
-  },
   priority: {
     type: String,
     enum: ['Low', 'Medium', 'High'],
     default: 'Medium'
-  },
-  dueDate: {
-    type: Date
   },
   project: {
     type: mongoose.Schema.Types.ObjectId,
@@ -33,13 +27,10 @@ const TaskSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  subtasks: [{
-    title: String,
-    completed: {
-      type: Boolean,
-      default: false
-    }
-  }],
+  order: {
+    type: Number,
+    default: 0
+  },
   createdAt: {
     type: Date,
     default: Date.now

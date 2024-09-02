@@ -1,3 +1,5 @@
+// src/routes/tasks.js (server side)
+
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
@@ -7,23 +9,21 @@ const Joi = require('joi');
 const taskSchema = Joi.object({
   title: Joi.string().required(),
   description: Joi.string().allow(''),
-  status: Joi.string().valid('To Do', 'In Progress', 'Done').required(),
   priority: Joi.string().valid('Low', 'Medium', 'High').required(),
   project: Joi.string().required(),
-  subtasks: Joi.array().items(Joi.object({
-    title: Joi.string().required(),
-    completed: Joi.boolean().default(false)
-  }))
+  order: Joi.number()
 });
 
 // Create a new task
 router.post('/', auth, async (req, res) => {
   try {
-    const { title, description, status, priority, project } = req.body;
+    const { error } = taskSchema.validate(req.body);
+    if (error) return res.status(400).send(error.details[0].message);
+
+    const { title, description, priority, project } = req.body;
     const newTask = new Task({
       title,
       description,
-      status,
       priority,
       project,
       user: req.user.id
@@ -39,7 +39,7 @@ router.post('/', auth, async (req, res) => {
 // Get all tasks for a project
 router.get('/project/:projectId', auth, async (req, res) => {
   try {
-    const tasks = await Task.find({ project: req.params.projectId, user: req.user.id });
+    const tasks = await Task.find({ project: req.params.projectId, user: req.user.id }).sort('order');
     res.json(tasks);
   } catch (err) {
     console.error(err.message);
@@ -70,20 +70,45 @@ router.get('/:id', auth, async (req, res) => {
 // Update a task
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { title, description, status, priority, dueDate } = req.body;
+    const { error } = taskSchema.validate(req.body);
+    if (error) return res.status(400).send(error.details[0].message);
+
+    const { title, description, priority, project, order } = req.body;
     let task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ msg: 'Task not found' });
     if (task.user.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
     
     task.title = title || task.title;
     task.description = description || task.description;
-    task.status = status || task.status;
     task.priority = priority || task.priority;
-    task.dueDate = dueDate || task.dueDate;
+    task.project = project || task.project;
+    task.order = order !== undefined ? order : task.order;
     task.updatedAt = Date.now();
 
     await task.save();
     res.json(task);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Reorder tasks
+router.put('/reorder/:projectId', auth, async (req, res) => {
+  try {
+    const { taskIds } = req.body;
+    const tasks = await Task.find({ _id: { $in: taskIds }, project: req.params.projectId });
+    
+    const bulkOps = taskIds.map((id, index) => ({
+      updateOne: {
+        filter: { _id: id },
+        update: { $set: { order: index } }
+      }
+    }));
+
+    await Task.bulkWrite(bulkOps);
+
+    res.json({ message: 'Tasks reordered successfully' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
