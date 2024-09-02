@@ -77,22 +77,70 @@ router.put('/:id', auth, async (req, res) => {
 router.put('/reorder/:projectId', auth, async (req, res) => {
   try {
     const { taskIds } = req.body;
-    const tasks = await Task.find({ _id: { $in: taskIds }, project: req.params.projectId, user: req.user.id });
-    
+    const projectId = req.params.projectId;
+
+    // Validate input
+    if (!Array.isArray(taskIds) || taskIds.length === 0) {
+      return res.status(400).json({ message: 'Invalid taskIds provided' });
+    }
+
+    // Fetch all tasks for the project
+    const tasks = await Task.find({ project: projectId, user: req.user.id });
+
+    // Create a map of task IDs to their current order
+    const taskOrderMap = new Map(tasks.map(task => [task._id.toString(), task.order]));
+
+    // Update task orders
     const bulkOps = taskIds.map((id, index) => ({
       updateOne: {
-        filter: { _id: id },
+        filter: { _id: id, project: projectId, user: req.user.id },
         update: { $set: { order: index } }
       }
     }));
 
     await Task.bulkWrite(bulkOps);
 
-    const updatedTasks = await Task.find({ _id: { $in: taskIds } }).sort('order');
+    // Fetch updated tasks
+    const updatedTasks = await Task.find({ project: projectId, user: req.user.id }).sort('order');
+
     res.json(updatedTasks);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error('Error reordering tasks:', err);
+    res.status(500).json({ message: 'Server Error', error: err.message });
+  }
+});
+
+// Move a task to a different project
+router.put('/:id/move', auth, async (req, res) => {
+  try {
+    const { newProjectId } = req.body;
+    const taskId = req.params.id;
+
+    // Validate input
+    if (!newProjectId) {
+      return res.status(400).json({ message: 'New project ID is required' });
+    }
+
+    // Check if the task exists and belongs to the user
+    const task = await Task.findOne({ _id: taskId, user: req.user.id });
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Check if the new project exists and belongs to the user
+    const newProject = await Project.findOne({ _id: newProjectId, user: req.user.id });
+    if (!newProject) {
+      return res.status(404).json({ message: 'New project not found' });
+    }
+
+    // Update the task's project
+    task.project = newProjectId;
+    await task.save();
+
+    res.json(task);
+  } catch (err) {
+    console.error('Error moving task:', err);
+    res.status(500).json({ message: 'Server Error', error: err.message });
   }
 });
 
