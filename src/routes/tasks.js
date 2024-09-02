@@ -3,6 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
+const Project = require('../models/Project');
 const auth = require('../middleware/auth');
 const Joi = require('joi');
 
